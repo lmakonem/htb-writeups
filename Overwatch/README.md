@@ -1,5 +1,7 @@
 # Overwatch - HackTheBox
 
+![Pwned](pwned.png)
+
 ## Machine Info
 
 | Property | Value |
@@ -29,8 +31,8 @@
 
 **This machine is currently active on HackTheBox.**
 
-The full writeup is available in the password-protected archive:
-- `Overwatch_writeup_LOCKED.zip`
+The full writeup is available in the password-protected PDF:
+- `Overwatch_writeup_LOCKED.pdf`
 
 The writeup will be made public after the machine retires.
 

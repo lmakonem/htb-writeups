@@ -13,29 +13,35 @@
 ## Skills Required
 
 - Windows Enumeration
-- Active Directory (TBD)
-- Privilege Escalation
+- Active Directory
+- MSSQL Exploitation
+- Web Services (WCF/SOAP)
 
 ## Skills Learned
 
-*To be documented after completion*
+- MSSQL Linked Server Abuse
+- ADIDNS Poisoning
+- Credential Interception
+- WCF Service Exploitation
+- PowerShell Command Injection
 
-## Writeup Status
+## Writeup
 
-**This writeup is currently locked as the machine is still active on HackTheBox.**
+**This machine is currently active on HackTheBox.**
 
-The full writeup will be available after the machine retires.
+The full writeup is available in the password-protected archive:
+- `Overwatch_writeup_LOCKED.zip`
 
-| File | Description |
-|------|-------------|
-| `Overwatch_writeup_LOCKED.pdf` | Password-protected PDF |
+The writeup will be made public after the machine retires.
 
 ## Quick Stats
 
-- User Flag: Pending
-- Root Flag: Pending
-- Attack Vector: TBD
+| Metric | Status |
+|--------|--------|
+| User Flag | Captured |
+| Root Flag | Captured |
+| Completed | March 2026 |
 
 ## Tags
 
-`windows` `medium`
+`windows` `medium` `active-directory` `mssql` `wcf` `soap`

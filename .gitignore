@@ -9,3 +9,13 @@ Thumbs.db
 # Temp files
 *.tmp
 *~
+
+# Raw writeup files (full writeups with flags) - only in password-protected ZIPs
+**/files/
+**/writeup.md
+**/WRITEUP.md
+**/full_writeup.md
+
+# Keep password-protected archives
+!**/*_LOCKED.zip
+!**/*_LOCKED.pdf

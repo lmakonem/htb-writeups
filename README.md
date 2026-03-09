@@ -14,10 +14,11 @@ Each machine has its own directory containing:
 
 Writeups for active machines are encrypted to comply with HTB's rules. They will be unlocked after the machine retires.
 
-| Machine | Difficulty | Status | Unlock Date |
-|---------|------------|--------|-------------|
-| [Facts](./Facts/) | Easy | Active | TBD |
-| [AirTouch](./AirTouch/) | Medium | Active | TBD |
+| Machine | OS | Difficulty | Status | Unlock Date |
+|---------|-----|------------|--------|-------------|
+| [Overwatch](./Overwatch/) | Windows | Medium | Active | TBD |
+| [Facts](./Facts/) | Linux | Easy | Active | TBD |
+| [AirTouch](./AirTouch/) | Linux | Medium | Active | TBD |
 
 ## Retired Machines (Unlocked)
 

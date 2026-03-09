@@ -16,6 +16,7 @@ Writeups for active machines are encrypted to comply with HTB's rules. They will
 
 | Machine | Difficulty | Status | Unlock Date |
 |---------|------------|--------|-------------|
+| [Facts](./Facts/) | Easy | Active | TBD |
 | [AirTouch](./AirTouch/) | Medium | Active | TBD |
 
 ## Retired Machines (Unlocked)

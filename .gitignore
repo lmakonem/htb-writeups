@@ -1,0 +1,11 @@
+# Password files - never commit
+.passwords
+*.passwords.txt
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temp files
+*.tmp
+*~

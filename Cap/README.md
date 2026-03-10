@@ -120,111 +120,67 @@ python3.8 -c 'import os; os.setuid(0); os.system("/bin/bash")'
 
 For post-exploitation practice with Sliver C2, network routing was configured to bridge the HTB network with the lab infrastructure.
 
-#### Network Topology
+#### Network Topology and Traffic Flow
 
 ```mermaid
-graph TB
-    subgraph HTB["HackTheBox Network (10.129.0.0/16)"]
-        Cap["<b>Cap Target</b><br/>10.129.3.86<br/>User: nathan<br/>Ubuntu 20.04"]
+%%{init: {'theme':'dark'}}%%
+graph LR
+    subgraph HTB["🌐 HackTheBox Network (10.129.0.0/16)"]
+        Cap["<b>Cap Target</b><br/>━━━━━━━━━━━<br/>IP: 10.129.3.86<br/>User: nathan<br/>OS: Ubuntu 20.04<br/>━━━━━━━━━━━<br/>Implant connects to:<br/>10.10.15.1:443"]
     end
     
-    subgraph Lab["Lab Network (192.168.36.0/24)"]
-        subgraph Kali["<b>Kali Machine (Dual-Homed)</b><br/>192.168.36.172"]
-            eth0["eth0: 192.168.36.172<br/>(Lab Network)"]
-            tun0["tun0: 10.10.15.1<br/>(HTB VPN)"]
-            tunnel["SSH Tunnel Process<br/>-L 10.10.15.1:443:127.0.0.1:4443"]
-        end
+    subgraph LAB["🏢 Lab Infrastructure (192.168.36.0/24)"]
+        Kali["<b>Kali Machine</b><br/>━━━━━━━━━━━<br/>eth0: 192.168.36.172<br/>tun0: 10.10.15.1<br/>━━━━━━━━━━━<br/>SSH Tunnel:<br/>-L 10.10.15.1:443<br/>→ 127.0.0.1:4443"]
         
-        Sliver["<b>Sliver C2 Server</b><br/>192.168.36.209:4443<br/>MTLS Listener<br/>Debian 12"]
+        C2["<b>Sliver C2 Server</b><br/>━━━━━━━━━━━<br/>IP: 192.168.36.209<br/>Listener: 0.0.0.0:4443<br/>Protocol: MTLS<br/>OS: Debian 12"]
     end
     
-    Cap -->|"① MTLS Callback<br/>10.129.3.86:random → 10.10.15.1:443<br/>(Encrypted Sliver Traffic)"| tun0
-    tun0 -.->|"② SSH Local Forward<br/>10.10.15.1:443 → 127.0.0.1:4443"| tunnel
-    tunnel -->|"③ Forwarded to<br/>192.168.36.209:4443"| Sliver
-    eth0 -.->|"Lab Network<br/>Connection"| Sliver
+    Cap ==>|"<b>① CALLBACK</b><br/>MTLS Encrypted<br/>Src: 10.129.3.86:random<br/>Dst: 10.10.15.1:443"| Kali
     
-    Sliver -->|"④ C2 Commands<br/>(Reverse Flow)"| tunnel
-    tunnel -.-> tun0
-    tun0 -->|"⑤ Execute Commands"| Cap
+    Kali ==>|"<b>② SSH TUNNEL</b><br/>Port Forward<br/>10.10.15.1:443<br/>→ 127.0.0.1:4443<br/>→ 192.168.36.209:4443"| C2
     
-    style Cap fill:#ff6b6b,stroke:#c92a2a,stroke-width:3px,color:#fff
-    style Kali fill:#4dabf7,stroke:#1971c2,stroke-width:3px,color:#000
-    style Sliver fill:#51cf66,stroke:#2f9e44,stroke-width:3px,color:#000
-    style HTB fill:#ffe066,stroke:#f59f00,stroke-width:2px
-    style Lab fill:#a5d8ff,stroke:#339af0,stroke-width:2px
-    style tunnel fill:#d0bfff,stroke:#7950f2,stroke-width:2px
+    C2 ==>|"<b>③ COMMANDS</b><br/>execute python3.8<br/>Privilege Escalation<br/>Root Shell"| Kali
+    
+    Kali ==>|"<b>④ EXECUTION</b><br/>Commands flow back<br/>through tunnel<br/>to Cap target"| Cap
+    
+    style Cap fill:#c92a2a,stroke:#fff,stroke-width:3px,color:#fff
+    style Kali fill:#1971c2,stroke:#fff,stroke-width:3px,color:#fff
+    style C2 fill:#2b8a3e,stroke:#fff,stroke-width:3px,color:#fff
+    style HTB fill:#862e9c,stroke:#fff,stroke-width:2px,color:#fff
+    style LAB fill:#087f5b,stroke:#fff,stroke-width:2px,color:#fff
 ```
 
-#### Architecture Overview
+#### Traffic Flow Explanation
 
-```mermaid
-sequenceDiagram
-    participant Cap as Cap Target<br/>10.129.3.86
-    participant VPN as Kali tun0<br/>10.10.15.1:443
-    participant SSH as SSH Tunnel<br/>Port Forward
-    participant C2 as Sliver Server<br/>192.168.36.209:4443
-    
-    Note over Cap,C2: Initial Callback (Implant Connects)
-    Cap->>VPN: ① MTLS Connection (Encrypted)
-    VPN->>SSH: ② Forward to 127.0.0.1:4443
-    SSH->>C2: ③ Deliver to Sliver Listener
-    C2-->>SSH: Session Established
-    SSH-->>VPN: 
-    VPN-->>Cap: 
-    
-    Note over Cap,C2: Command Execution (Operator → Target)
-    C2->>SSH: ④ Execute Command
-    SSH->>VPN: Through Tunnel
-    VPN->>Cap: ⑤ Command Delivered
-    Cap-->>VPN: Command Output
-    VPN-->>SSH: 
-    SSH-->>C2: Output Returned
-    
-    Note over Cap,C2: Privilege Escalation
-    C2->>Cap: upload /tmp/mk_suid.py
-    C2->>Cap: execute python3.8 /tmp/mk_suid.py
-    Cap->>Cap: Python uses cap_setuid<br/>Creates SUID implant
-    C2->>Cap: execute /tmp/root_exec.py
-    Cap->>VPN: New Root Callback
-    VPN->>C2: Root Session Established
-```
+**Step-by-Step Breakdown:**
 
-#### Traffic Flow Breakdown
+1. **① Callback (Cap → Kali):**
+   - Implant on Cap target connects to `10.10.15.1:443`
+   - This is Kali's HTB VPN interface (tun0)
+   - Traffic is MTLS encrypted (Sliver protocol)
 
-**Callback Traffic (Target → C2):**
+2. **② SSH Tunnel (Kali → Sliver):**
+   - SSH tunnel listening on `10.10.15.1:443`
+   - Forwards to local `127.0.0.1:4443`
+   - Then routes to Sliver server at `192.168.36.209:4443`
 
-```mermaid
-flowchart LR
-    A[Cap Target<br/>10.129.3.86] -->|MTLS<br/>Encrypted| B[Kali tun0<br/>10.10.15.1:443]
-    B -->|SSH Tunnel<br/>Local Forward| C[127.0.0.1:4443]
-    C -->|Lab Network| D[Sliver Server<br/>192.168.36.209:4443]
-    
-    style A fill:#ff6b6b,stroke:#c92a2a,stroke-width:2px,color:#fff
-    style B fill:#4dabf7,stroke:#1971c2,stroke-width:2px,color:#000
-    style C fill:#d0bfff,stroke:#7950f2,stroke-width:2px,color:#000
-    style D fill:#51cf66,stroke:#2f9e44,stroke-width:2px,color:#000
-```
+3. **③ Commands (Sliver → Kali):**
+   - Operator issues commands in Sliver console
+   - Commands travel through established MTLS session
+   - SSH tunnel forwards bidirectionally
 
-**Command Flow (C2 → Target):**
+4. **④ Execution (Kali → Cap):**
+   - Commands flow back through the tunnel
+   - Delivered to Cap target via tun0 interface
+   - Python `cap_setuid` used for privilege escalation
+   - Root callback established on new session
 
-```mermaid
-flowchart LR
-    D[Sliver Server<br/>192.168.36.209:4443] -->|Lab Network| C[127.0.0.1:4443]
-    C -->|SSH Tunnel<br/>Reverse| B[Kali tun0<br/>10.10.15.1:443]
-    B -->|MTLS<br/>Encrypted| A[Cap Target<br/>10.129.3.86]
-    
-    style A fill:#ff6b6b,stroke:#c92a2a,stroke-width:2px,color:#fff
-    style B fill:#4dabf7,stroke:#1971c2,stroke-width:2px,color:#000
-    style C fill:#d0bfff,stroke:#7950f2,stroke-width:2px,color:#000
-    style D fill:#51cf66,stroke:#2f9e44,stroke-width:2px,color:#000
-```
+**Key Architecture Points:**
 
-**Key Points:**
-
-1. **Initial Callback:** Implant on Cap connects to `10.10.15.1:443` (Kali's HTB VPN IP)
-2. **SSH Tunnel:** Kali forwards `10.10.15.1:443` → `127.0.0.1:4443` → `192.168.36.209:4443`
-3. **Bidirectional:** SSH tunnel allows commands to flow back to Cap target
-4. **Double Encryption:** MTLS (Sliver) + SSH tunnel encryption
+- 🔒 **Double Encryption:** MTLS (Sliver) + SSH tunnel
+- 🌉 **Network Bridge:** Kali acts as gateway between isolated networks
+- 🔄 **Bidirectional:** Full C2 functionality through tunnel
+- 🎯 **Separation:** C2 server isolated from VPN endpoint
 
 #### Network Configuration
 

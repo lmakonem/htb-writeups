@@ -22,7 +22,9 @@ Writeups for active machines are encrypted to comply with HTB's rules. They will
 
 ## Retired Machines (Unlocked)
 
-*Coming soon*
+| Machine | OS | Difficulty | Completed | Key Techniques |
+|---------|-----|------------|-----------|----------------|
+| [Cap](./Cap/) | Linux | Easy | March 2026 | IDOR, PCAP Analysis, Linux Capabilities |
 
 ## Unlocking Writeups
 

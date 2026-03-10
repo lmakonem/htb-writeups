@@ -126,18 +126,18 @@ For post-exploitation practice with Sliver C2, network routing was configured to
 %%{init: {'theme':'dark'}}%%
 graph LR
     subgraph HTB["🌐 HackTheBox Network (10.129.0.0/16)"]
-        Cap["<b>Cap Target</b><br/>━━━━━━━━━━━<br/>IP: 10.129.3.86<br/>User: nathan<br/>OS: Ubuntu 20.04<br/>━━━━━━━━━━━<br/>Implant connects to:<br/>10.10.15.1:443"]
+        Cap["<b>Cap Target</b><br/>━━━━━━━━━━━<br/>IP: 10.129.3.86<br/>User: nathan<br/>OS: Ubuntu 20.04<br/>━━━━━━━━━━━<br/>Implant connects to:<br/>10.10.15.x:443"]
     end
     
     subgraph LAB["🏢 Lab Infrastructure (192.168.36.0/24)"]
-        Kali["<b>Kali Machine</b><br/>━━━━━━━━━━━<br/>eth0: 192.168.36.172<br/>tun0: 10.10.15.1<br/>━━━━━━━━━━━<br/>SSH Tunnel:<br/>-L 10.10.15.1:443<br/>→ 127.0.0.1:4443"]
+        Kali["<b>Kali Machine</b><br/>━━━━━━━━━━━<br/>eth0: 192.168.36.x<br/>tun0: 10.10.15.x<br/>━━━━━━━━━━━<br/>SSH Tunnel:<br/>-L 10.10.15.x:443<br/>→ 127.0.0.1:4443"]
         
-        C2["<b>Sliver C2 Server</b><br/>━━━━━━━━━━━<br/>IP: 192.168.36.209<br/>Listener: 0.0.0.0:4443<br/>Protocol: MTLS<br/>OS: Debian 12"]
+        C2["<b>Sliver C2 Server</b><br/>━━━━━━━━━━━<br/>IP: 192.168.36.x<br/>Listener: 0.0.0.0:4443<br/>Protocol: MTLS<br/>OS: Debian 12"]
     end
     
-    Cap ==>|"<b>① CALLBACK</b><br/>MTLS Encrypted<br/>Src: 10.129.3.86:random<br/>Dst: 10.10.15.1:443"| Kali
+    Cap ==>|"<b>① CALLBACK</b><br/>MTLS Encrypted<br/>Src: 10.129.3.86:random<br/>Dst: 10.10.15.x:443"| Kali
     
-    Kali ==>|"<b>② SSH TUNNEL</b><br/>Port Forward<br/>10.10.15.1:443<br/>→ 127.0.0.1:4443<br/>→ 192.168.36.209:4443"| C2
+    Kali ==>|"<b>② SSH TUNNEL</b><br/>Port Forward<br/>10.10.15.x:443<br/>→ 127.0.0.1:4443<br/>→ 192.168.36.x:4443"| C2
     
     C2 ==>|"<b>③ COMMANDS</b><br/>execute python3.8<br/>Privilege Escalation<br/>Root Shell"| Kali
     
@@ -155,14 +155,14 @@ graph LR
 **Step-by-Step Breakdown:**
 
 1. **① Callback (Cap → Kali):**
-   - Implant on Cap target connects to `10.10.15.1:443`
+   - Implant on Cap target connects to `10.10.15.x:443`
    - This is Kali's HTB VPN interface (tun0)
    - Traffic is MTLS encrypted (Sliver protocol)
 
 2. **② SSH Tunnel (Kali → Sliver):**
-   - SSH tunnel listening on `10.10.15.1:443`
+   - SSH tunnel listening on `10.10.15.x:443`
    - Forwards to local `127.0.0.1:4443`
-   - Then routes to Sliver server at `192.168.36.209:4443`
+   - Then routes to Sliver server at `192.168.36.x:4443`
 
 3. **③ Commands (Sliver → Kali):**
    - Operator issues commands in Sliver console
@@ -185,25 +185,25 @@ graph LR
 #### Network Configuration
 
 **Kali Machine:**
-- **eth0:** `192.168.36.172` (lab network)
-- **tun0:** `10.10.15.1` (HTB VPN)
-- **SSH Tunnel:** Binds to `10.10.15.1:443`, forwards to `192.168.36.209:4443`
+- **eth0:** `192.168.36.x` (lab network)
+- **tun0:** `10.10.15.x` (HTB VPN)
+- **SSH Tunnel:** Binds to `10.10.15.x:443`, forwards to `192.168.36.x:4443`
 
 **Sliver Server:**
-- **IP:** `192.168.36.209`
+- **IP:** `192.168.36.x`
 - **Listener:** `0.0.0.0:4443` (MTLS)
 - **Access:** Only accepts connections from `127.0.0.1` (via SSH tunnel)
 
 **Cap Target:**
 - **IP:** `10.129.3.86` (HTB network)
-- **Route:** Connects to `10.10.15.1` via HTB VPN gateway
-- **Implant:** Configured to connect to `10.10.15.1:443`
+- **Route:** Connects to `10.10.15.x` via HTB VPN gateway
+- **Implant:** Configured to connect to `10.10.15.x:443`
 
 #### Why This Architecture?
 
 **Problem:**
 - Cap target (`10.129.3.86`) is on HTB network
-- Sliver server (`192.168.36.209`) is on lab network
+- Sliver server (`192.168.36.x`) is on lab network
 - These networks cannot directly communicate
 
 **Solution:**
@@ -222,7 +222,7 @@ graph LR
 
 **SSH Tunnel Command:**
 ```bash
-ssh -f -N -L 10.10.15.1:443:127.0.0.1:4443 debian@192.168.36.209
+ssh -f -N -L 10.10.15.x:443:127.0.0.1:4443 debian@192.168.36.x
 ```
 
 ### Sliver Implant Deployment

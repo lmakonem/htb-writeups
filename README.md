@@ -16,6 +16,7 @@ Writeups for active machines are encrypted to comply with HTB's rules. They will
 
 | Machine | OS | Difficulty | Status | Unlock Date |
 |---------|-----|------------|--------|-------------|
+| [CCTV](./CCTV/) | Linux | Easy | Active | TBD |
 | [Overwatch](./Overwatch/) | Windows | Medium | Active | TBD |
 | [Facts](./Facts/) | Linux | Easy | Active | TBD |
 | [AirTouch](./AirTouch/) | Linux | Medium | Active | TBD |

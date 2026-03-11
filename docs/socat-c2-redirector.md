@@ -1,6 +1,6 @@
 # Socat C2 Redirector Setup
 
-<img width="2526" height="1523" alt="image" src="https://github.com/user-attachments/assets/679bff92-a5e3-404c-bf0a-4d5e0a2333af" />
+<img width="2511" height="1258" alt="image" src="https://github.com/user-attachments/assets/6e179054-1a6b-4c23-b326-e0558c86f510" />
 
 
 *Add C2 logs in a custom C2 ingester*

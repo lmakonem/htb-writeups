@@ -33,7 +33,7 @@ After a machine retires, the writeup will be decrypted and made available. Passw
 
 ## C2 Setup for HackTheBox
 
-When practicing real-world attack chains on HTB, we use [Sliver C2](https://sliver.sh/) to simulate proper adversary infrastructure. This provides:
+When practicing attack chains on HTB, we use [Sliver C2](https://sliver.sh/) to simulate proper adversary infrastructure. This provides:
 
 - Persistent access across exploitation phases
 - Proper session management for multi-stage attacks

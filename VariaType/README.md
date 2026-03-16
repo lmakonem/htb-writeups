@@ -11,7 +11,7 @@
 | Difficulty | Medium |
 | Release Date | Season 10 (2026) |
 | Status | **Active** |
-| IP | 10.129.6.242 |
+| IP | 10.129.7.19 (current instance) |
 
 ## Skills Required
 
@@ -46,6 +46,7 @@ The full writeup will be available after the machine retires.
 - Root Flag: Obtained
 - Attack Vector: Web Application (.git exposure + fontTools RCE)
 - Pivots Required: 2 (www-data -> steve -> root)
+- C2 Deployed: Sliver beacon (FUTURE_SORT) via mTLS
 
 ## Attack Path Summary
 
@@ -82,6 +83,16 @@ The full writeup will be available after the machine retires.
 |---------|----------|--------|
 | Portal | gitbot | .git repository commit history |
 | SSH | root | CVE-2025-47273 SSH key injection |
+
+## C2 Infrastructure
+
+| Component | Details |
+|-----------|---------|
+| C2 Server | Sliver @ 192.168.36.102:31337 |
+| Redirector | socat 10.10.15.170:443 -> 192.168.36.102:4443 |
+| Beacon | FUTURE_SORT (linux/amd64, mTLS) |
+| Beacon Location | /tmp/beacon on target |
+| Status | Active and checking in |
 
 ## Files of Interest
 

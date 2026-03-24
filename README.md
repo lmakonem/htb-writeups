@@ -21,6 +21,7 @@ Writeups for active machines are encrypted to comply with HTB's rules. They will
 | [Facts](./Facts/) | Linux | Easy | Active | TBD |
 | [AirTouch](./AirTouch/) | Linux | Medium | Active | TBD |
 | [MonitorFour](./MonitorFour/) | Windows | Medium | Active | TBD |
+| [Eighteen](./Eighteen/) | Windows | Easy | Active | TBD |
 
 ## Retired Machines (Unlocked)
 

@@ -20,6 +20,7 @@ Writeups for active machines are encrypted to comply with HTB's rules. They will
 | [Overwatch](./Overwatch/) | Windows | Medium | Active | TBD |
 | [Facts](./Facts/) | Linux | Easy | Active | TBD |
 | [AirTouch](./AirTouch/) | Linux | Medium | Active | TBD |
+| [MonitorFour](./MonitorFour/) | Windows | Medium | Active | TBD |
 
 ## Retired Machines (Unlocked)
 
